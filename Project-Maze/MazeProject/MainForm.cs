@@ -9,7 +9,7 @@ namespace MazeProject
     {
         private Bitmap? _mazeImage;
         private Bitmap? _agentsImage;
-        private int[,]? _maze;
+        private int[,,]? _maze;
         private int _startX, _startY;
 
         private List<MazeAgent> _agents = new();
@@ -153,7 +153,7 @@ namespace MazeProject
             StopSimulation();
         }
 
-        private void StartSimulation(int noAgents, int[,] maze)
+        private void StartSimulation(int noAgents, int[,,] maze)
         {
             try
             {
@@ -194,7 +194,7 @@ namespace MazeProject
             ShowMessage("Simulation stopped successfully.", MessageBoxIcon.Information);
         }
 
-        private void DrawMaze(Graphics g, int[,] maze)
+        private void DrawMaze(Graphics g, int[,,] maze)
         {
             int minXY = Math.Min(pictureBox.Width, pictureBox.Height);
             int maxMazeXY = Math.Max(maze.GetLength(0), maze.GetLength(1));
@@ -204,7 +204,7 @@ namespace MazeProject
             {
                 for (int y = 0; y < maze.GetLength(1); y++)
                 {
-                    switch (maze[x, y])
+                    switch (maze[x, y, 0])
                     {
                         case (int)MazeCell.Wall:
                             if (_wallImage != null)

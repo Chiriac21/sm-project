@@ -2,7 +2,15 @@
 {
     public static class MazeGenerator
     {
-        public static int[,] GenerateMaze(int width, int height, out int startX, out int startY, Action<int> progressCallback, int seed = 0)
+        /*
+         3D Matrix index meaning:
+         Index 0 - state of current cell (wall, path, start, exit)
+         Index 1 - "Up" neighbor
+         Index 2 - "Down" neighbor
+         Index 3 - "Left" neighbor
+         Index 4 - "Right" neighbor
+         */
+        public static int[,,] GenerateMaze(int width, int height, out int startX, out int startY, Action<int> progressCallback, int seed = 0)
         {
             int actualWidth = width;
             int actualHeight = height;
@@ -21,15 +29,18 @@
                 actualHeight++;
 
             int[,] maze = new int[actualWidth, actualHeight];
-            Random random = new(seed);
+
+            Random random = new Random(seed);
             if (seed == 0)
-                random = new();
-            List<int[]> frontierCells = new();
+                random = new Random();
+            List<int[]> frontierCells = new List<int[]>();
 
             // initialize the maze with walls
             for (int i = 0; i < actualWidth; i++)
                 for (int j = 0; j < actualHeight; j++)
+                { 
                     maze[i, j] = (int)MazeCell.Wall;
+                }
 
             // choose a random starting point and add it as a frontier cell
             int initX = random.Next(1, actualWidth);
@@ -50,6 +61,7 @@
                 int y = frontierCell[3];
                 int ix = frontierCell[0];
                 int iy = frontierCell[1];
+
                 if (maze[x, y] == (int)MazeCell.Wall)
                 {
                     maze[x, y] = (int)MazeCell.Path;
@@ -134,9 +146,25 @@
             maze[exitX, exitY] = (int)MazeCell.Exit;
             maze[startX, startY] = (int)MazeCell.Start;
 
-            return maze;
-        }
+            // Create 3D matrix for neighbors
+            int[,,] mazeWithNeighbors = new int[actualWidth, actualHeight, 5];
+            for (int i = 0; i < actualWidth; i++)
+            {
+                for (int j = 0; j < actualHeight; j++)
+                {
+                    // Cell value
+                    mazeWithNeighbors[i, j, 0] = maze[i, j];
 
+                    // Neighbors: Carefully handle boundaries
+                    mazeWithNeighbors[i, j, 1] = (j > 0) ? maze[i, j - 1] : (int)MazeCell.Wall;                // Up
+                    mazeWithNeighbors[i, j, 2] = (j < actualHeight - 1) ? maze[i, j + 1] : (int)MazeCell.Wall; // Down
+                    mazeWithNeighbors[i, j, 3] = (i > 0) ? maze[i - 1, j] : (int)MazeCell.Wall;                // Left
+                    mazeWithNeighbors[i, j, 4] = (i < actualWidth - 1) ? maze[i + 1, j] : (int)MazeCell.Wall;  // Right
+                }
+            }
+
+            return mazeWithNeighbors;
+        }
 
     }
 

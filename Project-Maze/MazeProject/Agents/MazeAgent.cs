@@ -10,10 +10,10 @@ namespace MazeProject.Agents
         public int OldX { get; private set; }
         public int OldY { get; private set; }
 
-        private int[,] _maze;
+        private int[,,] _maze;
         private readonly Random _random;
 
-        public MazeAgent(int[,] maze, int startX, int startY, string name)
+        public MazeAgent(int[,,] maze, int startX, int startY, string name)
         {
             X = startX;
             Y = startY;
@@ -71,7 +71,7 @@ namespace MazeProject.Agents
             if (Y - 1 < 0)
                 return false;
 
-            if (_maze[X, Y - 1] != (int)MazeCell.Path)
+            if (_maze[X, Y - 1, 0] != (int)MazeCell.Path)
                 return false;
 
             OldX = X;
@@ -84,7 +84,7 @@ namespace MazeProject.Agents
         {
             if (Y + 1 >= _maze.GetLength(0))
                 return false;
-            if (_maze[X, Y + 1] != (int)MazeCell.Path)
+            if (_maze[X, Y + 1, 0] != (int)MazeCell.Path)
                 return false;
 
             OldX = X;
@@ -97,7 +97,7 @@ namespace MazeProject.Agents
         {
             if (X + 1 >= _maze.GetLength(1))
                 return false;
-            if (_maze[X + 1, Y] != (int)MazeCell.Path)
+            if (_maze[X + 1, Y, 0] != (int)MazeCell.Path)
                 return false;
 
             OldX = X;
@@ -110,7 +110,7 @@ namespace MazeProject.Agents
         {
             if (X - 1 < 0)
                 return false;
-            if (_maze[X - 1, Y] != (int)MazeCell.Path)
+            if (_maze[X - 1, Y, 0] != (int)MazeCell.Path)
                 return false;
 
             OldX = X;
