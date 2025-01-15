@@ -10,7 +10,7 @@
          Index 3 - "Left" neighbor
          Index 4 - "Right" neighbor
          */
-        public static int[,,] GenerateMaze(int width, int height, out int startX, out int startY, Action<int> progressCallback, int seed = 0)
+        public static double[,,] GenerateMaze(int width, int height, out int startX, out int startY, Action<int> progressCallback, int seed = 0)
         {
             int actualWidth = width;
             int actualHeight = height;
@@ -147,7 +147,7 @@
             maze[startX, startY] = (int)MazeCell.Start;
 
             // Create 3D matrix for neighbors
-            int[,,] mazeWithNeighbors = new int[actualWidth, actualHeight, 5];
+            double[,,] mazeWithNeighbors = new double[actualWidth, actualHeight, 5];
             for (int i = 0; i < actualWidth; i++)
             {
                 for (int j = 0; j < actualHeight; j++)
@@ -170,9 +170,9 @@
 
     public enum MazeCell
     {
-        Path = 0, 
-        Wall = 1, 
-        Exit = 2,
-        Start = 3
+        Wall = 0, 
+        Path = 1, 
+        Exit = -2,
+        Start = -3
     }
 }

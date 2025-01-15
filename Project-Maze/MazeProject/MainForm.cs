@@ -1,7 +1,10 @@
+﻿using ActressMas;
 using MazeProject.Agents;
 using MazeProject.Utils;
+using System.Drawing;
 using System.Reflection;
 using System.Resources;
+using System.Runtime.CompilerServices;
 
 namespace MazeProject
 {
@@ -9,9 +12,10 @@ namespace MazeProject
     {
         private Bitmap? _mazeImage;
         private Bitmap? _agentsImage;
-        private int[,,]? _maze;
+        private double[,,]? _maze;
         private int _startX, _startY;
 
+        private static int previousGreenBlue = 255; // Valoarea inițială pentru green și blue
         private List<MazeAgent> _agents = new();
         private MazeEnvironment? _environment;
         private Thread? _simulationThread;
@@ -108,7 +112,7 @@ namespace MazeProject
                 _mazeImage = new Bitmap(pictureBox.Width, pictureBox.Height);
 
                 using Graphics g = Graphics.FromImage(_mazeImage);
-                DrawMaze(g, _maze);
+                DrawMaze(g);
 
                 pictureBox.Invalidate(); // Force redraw
             }
@@ -153,7 +157,7 @@ namespace MazeProject
             StopSimulation();
         }
 
-        private void StartSimulation(int noAgents, int[,,] maze)
+        private void StartSimulation(int noAgents, double[,,] maze)
         {
             try
             {
@@ -165,7 +169,7 @@ namespace MazeProject
 
                 for (int i = 0; i < noAgents; i++)
                 {
-                    var agent = new MazeAgent(maze, _startX, _startY, $"Agent_{i}");
+                    var agent = new MazeAgent(maze, _startX, _startY, $"Agent_{i}", this);
                     _environment.Add(agent);
                     _agents.Add(agent);
                 }
@@ -194,46 +198,63 @@ namespace MazeProject
             ShowMessage("Simulation stopped successfully.", MessageBoxIcon.Information);
         }
 
-        private void DrawMaze(Graphics g, int[,,] maze)
+        public void AgentAtFinish(MazeAgent agent)
+        {
+            if (_environment == null) return;
+
+            _environment.Remove(agent);
+
+            ShowMessage("Agent escaped the maze.", MessageBoxIcon.Information);
+
+            if (_environment.NoAgents == 0)
+            {
+                _environment = null;
+                ShowMessage("Simulation stopped successfully.", MessageBoxIcon.Information);
+            }
+
+        }
+
+        private Color GetColorByWeight(double weight)
+        {
+            int greenBlue;
+            int red = 255;  // Pe măsură ce ponderea crește, roșul crește
+            if (weight != 0)
+            { 
+                greenBlue = (int)(255 * weight) - 20;
+                if (greenBlue <= 0)
+                    greenBlue = 0;
+            }
+            else
+                greenBlue = (int)(255 * weight);
+            return Color.FromArgb(red, greenBlue, greenBlue);
+        }
+
+        private void DrawMaze(Graphics g)
         {
             int minXY = Math.Min(pictureBox.Width, pictureBox.Height);
-            int maxMazeXY = Math.Max(maze.GetLength(0), maze.GetLength(1));
+            int maxMazeXY = Math.Max(_maze.GetLength(0), _maze.GetLength(1));
             int cellSize = minXY / maxMazeXY;
 
-            for (int x = 0; x < maze.GetLength(0); x++)
+            for (int x = 0; x < _maze.GetLength(0); x++)
             {
-                for (int y = 0; y < maze.GetLength(1); y++)
+                for (int y = 0; y < _maze.GetLength(1); y++)
                 {
-                    switch (maze[x, y, 0])
+                    switch (_maze[x, y, 0])
                     {
                         case (int)MazeCell.Wall:
-                            if (_wallImage != null)
-                            {
-                                g.DrawImage(_wallImage, new Rectangle(x * cellSize, y * cellSize, cellSize, cellSize));
-                            }
-                            else
-                            {
-                                g.FillRectangle(Brushes.Black, x * cellSize, y * cellSize, cellSize, cellSize);
-                            }
+                            g.FillRectangle(Brushes.Black, x * cellSize, y * cellSize, cellSize, cellSize);
                             break;
 
                         case (int)MazeCell.Start:
-                            g.FillRectangle(Brushes.Red, x * cellSize, y * cellSize, cellSize, cellSize);
+                            g.FillRectangle(Brushes.DarkRed, x * cellSize, y * cellSize, cellSize, cellSize);
                             break;
 
                         case (int)MazeCell.Exit:
-                            g.FillRectangle(Brushes.LimeGreen, x * cellSize, y * cellSize, cellSize, cellSize);
+                            g.FillRectangle(Brushes.Green, x * cellSize, y * cellSize, cellSize, cellSize);
                             break;
 
                         default: // Pathway
-                            if (_pathwayImage != null)
-                            {
-                                g.DrawImage(_pathwayImage, x * cellSize, y * cellSize, cellSize, cellSize);
-                            }
-                            else
-                            {
-                                g.FillRectangle(Brushes.White, x * cellSize, y * cellSize, cellSize, cellSize);
-                            }
+                            g.FillRectangle(Brushes.White, x * cellSize, y * cellSize, cellSize, cellSize);
                             break;
                     }
                 }
@@ -268,25 +289,53 @@ namespace MazeProject
 
         private void Agent_OnMoveEvent()
         {
-            // Avoid invoking if the form handle is not created yet
-            if (!this.IsHandleCreated)
-                return;
-
-            // Safely update the UI via Invoke
+            // Actualizează imaginea agentului pe bază de mișcare
             if (_agentsImage != null)
             {
                 _agentsImage.Dispose();
-                GC.Collect(); // prevents memory leaks
+                GC.Collect(); // Previne scurgerile de memorie
             }
 
-            _agentsImage = new Bitmap(pictureBox.Width, pictureBox.Height);
-            Graphics g = Graphics.FromImage(_agentsImage);
-            DrawAgents(g);
+            int minXY = Math.Min(pictureBox.Width, pictureBox.Height);
+            int maxMazeXY = Math.Max(_maze.GetLength(0), _maze.GetLength(1));
+            int cellSize = minXY / maxMazeXY;
 
-            // Use Invoke to ensure thread-safety when updating the UI
+            foreach (var agent in _agents)
+            { 
+            Graphics g = Graphics.FromImage(_mazeImage);
+
+            //=====Test purpose - show weight of the cell=====
+            //using Font font = new Font("Arial", cellSize / 3);
+            //using Brush textBrush = new SolidBrush(Color.Black);
+            //double result = Math.Round(_maze[agent.OldX, agent.OldY, 0], 1, MidpointRounding.ToEven);
+            //string weightText = result.ToString();
+            //SizeF textSize = g.MeasureString(weightText, font);
+            //float textX = agent.OldX * cellSize + (cellSize - textSize.Width) / 2;
+            //float textY = agent.OldY * cellSize + (cellSize - textSize.Height) / 2;
+
+            // Calculăm ponderea celulei curente
+            double weight = _maze[agent.OldX, agent.OldY, 0];
+
+            if (weight != -2 && weight != -3)
+            {
+                // Obținem culoarea bazată pe pondere
+                Color cellColor = GetColorByWeight(weight);
+                Brush cellBrush = new SolidBrush(cellColor);
+                g.FillRectangle(cellBrush, agent.OldX * cellSize, agent.OldY * cellSize, cellSize, cellSize);
+            }
+
+            //=====Test purpose - show weight of the cell=====
+            //g.DrawString(weightText, font, textBrush, textX, textY);
+
+            }
+            _agentsImage = new Bitmap(pictureBox.Width, pictureBox.Height);
+            Graphics ga = Graphics.FromImage(_agentsImage);
+            DrawAgents(ga); // Redesenăm agenții pe harta
+
+            // Folosim Invoke pentru a ne asigura că actualizările sunt făcute pe thread-ul principal
             this.Invoke((MethodInvoker)(() =>
             {
-                pictureBox.Refresh();
+                pictureBox.Refresh(); // Reîmprospătăm imaginea
             }));
         }
 
@@ -314,5 +363,7 @@ namespace MazeProject
                 progressBarSimulation.Value = progress;
             }
         }
+
     }
+
 }
