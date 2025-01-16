@@ -15,7 +15,7 @@ namespace MazeProject
         private double[,,]? _maze;
         private int _startX, _startY;
 
-        private static int previousGreenBlue = 255; // Valoarea inițială pentru green și blue
+        private static int previousGreenBlue = 255; // inital value green and blue
         private List<MazeAgent> _agents = new();
         private MazeEnvironment? _environment;
         private Thread? _simulationThread;
@@ -217,7 +217,7 @@ namespace MazeProject
         private Color GetColorByWeight(double weight)
         {
             int greenBlue;
-            int red = 255;  // Pe măsură ce ponderea crește, roșul crește
+            int red = 255;  // as weights grows, red also grows
             if (weight != 0)
             { 
                 greenBlue = (int)(255 * weight) - 20;
@@ -289,11 +289,11 @@ namespace MazeProject
 
         private void Agent_OnMoveEvent()
         {
-            // Actualizează imaginea agentului pe bază de mișcare
+            // update the agent image as he moves
             if (_agentsImage != null)
             {
                 _agentsImage.Dispose();
-                GC.Collect(); // Previne scurgerile de memorie
+                GC.Collect(); // avoid memory leaks
             }
 
             int minXY = Math.Min(pictureBox.Width, pictureBox.Height);
@@ -313,12 +313,12 @@ namespace MazeProject
             //float textX = agent.OldX * cellSize + (cellSize - textSize.Width) / 2;
             //float textY = agent.OldY * cellSize + (cellSize - textSize.Height) / 2;
 
-            // Calculăm ponderea celulei curente
+            // find the weight of current cell
             double weight = _maze[agent.OldX, agent.OldY, 0];
 
             if (weight != -2 && weight != -3)
             {
-                // Obținem culoarea bazată pe pondere
+                // get the color based on weight
                 Color cellColor = GetColorByWeight(weight);
                 Brush cellBrush = new SolidBrush(cellColor);
                 g.FillRectangle(cellBrush, agent.OldX * cellSize, agent.OldY * cellSize, cellSize, cellSize);
@@ -330,12 +330,12 @@ namespace MazeProject
             }
             _agentsImage = new Bitmap(pictureBox.Width, pictureBox.Height);
             Graphics ga = Graphics.FromImage(_agentsImage);
-            DrawAgents(ga); // Redesenăm agenții pe harta
+            DrawAgents(ga); 
 
-            // Folosim Invoke pentru a ne asigura că actualizările sunt făcute pe thread-ul principal
+            // main thread updates
             this.Invoke((MethodInvoker)(() =>
             {
-                pictureBox.Refresh(); // Reîmprospătăm imaginea
+                pictureBox.Refresh(); 
             }));
         }
 
