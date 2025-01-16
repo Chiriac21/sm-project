@@ -9,14 +9,15 @@ namespace MazeProject.Agents
         public int Y { get; set; }
         public int OldX { get; set; }
         public int OldY { get; set; }
-        public double TotalCost { get; private set; }
         public int LastDirection { get; set; } // Directia agentului ultima data
 
         private MainForm _mainForm;
         private double[,,] _maze;
-        private HashSet<string> visitedCells = new HashSet<string>(); // Celulele vizitate
         private Stack<int> pathHistory = new Stack<int>(); // Istoricul directiilor parcurse
-        private bool wasDeadEnd = false;
+        private bool wasDeadEnd;
+        private bool _hasExitCoordinates;
+        private int _exitX;
+        private int _exitY;
 
         public MazeAgent(double[,,] maze, int startX, int startY, string name, MainForm mainForm, double initialCost = 100)
         {
@@ -24,11 +25,12 @@ namespace MazeProject.Agents
             Y = startY;
             OldX = startX;
             OldY = startY;
-            TotalCost = initialCost;
             _maze = maze;
             Name = name;
             LastDirection = -1;
             _mainForm = mainForm;
+            wasDeadEnd= false;
+            _hasExitCoordinates = false;
         }
 
         public override void Setup()
@@ -38,7 +40,13 @@ namespace MazeProject.Agents
 
         public override void Act(ActressMas.Message message)
         {
-
+            if (message.Content.StartsWith("Exit:"))
+            {
+                string[] parts = message.Content.Split(':')[1].Split(',');
+                _exitX = int.Parse(parts[0]);
+                _exitY = int.Parse(parts[1]);
+                _hasExitCoordinates = true;
+            }
         }
 
         public override void ActDefault()
@@ -61,10 +69,11 @@ namespace MazeProject.Agents
             }
             else if (_maze[X, Y, 0] == -2)
             {
+                BroadcastExitFound();
                 StopAgent();
             }
             else
-            { 
+            {
                 MoveStrategically();
             }
         }
@@ -101,7 +110,7 @@ namespace MazeProject.Agents
             for (int direction = 1; direction <= 4; direction++)
             {
                 // daca ponderea > 0 si celula n-a fost vizitata
-                if (_maze[x, y, direction] > 0 && !visitedCells.Contains($"{x},{y},{direction}"))
+                if (_maze[x, y, direction] > 0)
                 {
                     validDirections.Add(direction);
                 }
@@ -114,7 +123,7 @@ namespace MazeProject.Agents
         private int ChooseBestDirection(List<int> validDirections)
         {
             int bestDirection = -1;
-            double bestWeight = -1f;
+            double bestWeight = 0f;
 
             foreach (int direction in validDirections)
             {
@@ -151,8 +160,6 @@ namespace MazeProject.Agents
             else if (direction == 2) Y++; // jos
             else if (direction == 3) X--; // stanga
             else if (direction == 4) X++; // dreapta
-
-            visitedCells.Add($"{X},{Y}");
 
             if (_maze[X, Y, 0] != -2)
             {
@@ -229,11 +236,10 @@ namespace MazeProject.Agents
 
             _maze[X, Y, LastDirection] = 0f;
             _maze[X, Y, 0] = Math.Max(_maze[X, Y, 0] - 0.1f, 0.1f);
+
             // Redefinim ultima directie
             LastDirection = GetOppositeDirection(lastDirection);
             pathHistory.Push(LastDirection);
-
-            visitedCells.Add($"{X},{Y}");
 
             wasDeadEnd = true;
 
@@ -267,6 +273,13 @@ namespace MazeProject.Agents
         {
             //Send("Environment", "AgentFinished");
             _mainForm.AgentAtFinish(this);
+        }
+
+        private void BroadcastExitFound()
+        {
+            string message = $"Exit:{X},{Y}";
+            Broadcast(message);
+            _hasExitCoordinates = true;
         }
     }
 

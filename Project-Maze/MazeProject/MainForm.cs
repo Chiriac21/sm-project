@@ -364,6 +364,10 @@ namespace MazeProject
             }
         }
 
+        public List<MazeAgent> getAgents() {
+            return _agents;
+        }
+
     }
 
 }
