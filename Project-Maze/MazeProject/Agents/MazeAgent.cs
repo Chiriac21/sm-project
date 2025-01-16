@@ -260,15 +260,6 @@ namespace MazeProject.Agents
             }
         }
 
-
-        public void UpdateCellWeight(int newX, int newY)
-        {
-            if (_maze[newX, newY, 0] < 1)
-            {
-                _maze[newX, newY, 0] += 0.1;
-            }
-        }
-
         private void StopAgent()
         {
             //Send("Environment", "AgentFinished");
