@@ -9,11 +9,11 @@ namespace MazeProject.Agents
         public int Y { get; set; }
         public int OldX { get; set; }
         public int OldY { get; set; }
-        public int LastDirection { get; set; } // Directia agentului ultima data
+        public int LastDirection { get; set; } // Agent's last moving direction
 
         private MainForm _mainForm;
         private double[,,] _maze;
-        private Stack<int> pathHistory = new Stack<int>(); // Istoricul directiilor parcurse
+        private Stack<int> pathHistory = new Stack<int>(); // Agent's path history
         private bool wasDeadEnd;
         private bool _hasExitCoordinates;
         private int _exitX;
@@ -83,19 +83,19 @@ namespace MazeProject.Agents
 
             List<int> validDirections = GetValidDirections(X, Y);
 
-            // agentul se afla in dead-end
+            // Agent reched a dead-end
             if (validDirections.Count == 1 && validDirections.Contains(GetOppositeDirection(LastDirection)))
             {
                 TurnBack(); 
             }
             else if (wasDeadEnd)
             {
-                // Daca nu există directii valide, ne intoarcem
+                // If there are no valid directions, the agent should evade the dead-end
                 EvadeDeadEnd();
             }
             else if (validDirections.Count > 0)
             {
-                // Alegem cea mai buna directie dintre cele valide
+                // We choose the best direction to move in
                 int bestDirection = ChooseBestDirection(validDirections);
                 MoveInDirection(bestDirection);
             }
@@ -106,10 +106,10 @@ namespace MazeProject.Agents
         {
             List<int> validDirections = new List<int>();
 
-            // parcurgem directiile
+            // Iterate trough all directions
             for (int direction = 1; direction <= 4; direction++)
             {
-                // daca ponderea > 0 si celula n-a fost vizitata
+                // If the cell's weight is greater than 0, it means it's a valid direction
                 if (_maze[x, y, direction] > 0)
                 {
                     validDirections.Add(direction);
@@ -119,7 +119,7 @@ namespace MazeProject.Agents
             return validDirections;
         }
 
-        // Calculeaza directia in functie de ponderile vecinilor
+        // Calculates the direction based on the weights of neighbors
         private int ChooseBestDirection(List<int> validDirections)
         {
             int bestDirection = -1;
@@ -130,7 +130,7 @@ namespace MazeProject.Agents
                 int neighborX = X;
                 int neighborY = Y;
 
-                // Calculam vecinul in functie de directie
+                // Find the neighbor's coordinates based on the direction
                 if (direction == 1) neighborY--; // Vecinul de sus
                 else if (direction == 2) neighborY++; // Vecinul de jos
                 else if (direction == 3) neighborX--; // Vecinul din stanga
@@ -138,7 +138,7 @@ namespace MazeProject.Agents
 
                 double weight = _maze[neighborX, neighborY, 0];
 
-                // Comparam ponderea gasita pana o gasim pe cea maxima (bestDirection)
+                // Compare the found weight with the best weight
                 if (weight > bestWeight)
                 {
                     bestWeight = weight;
@@ -149,21 +149,21 @@ namespace MazeProject.Agents
             return bestDirection;
         }
 
-        // Muta agentul intr-o directie
+        // Moves the agent in a certain direction
         private void MoveInDirection(int direction)
         {
-            // ca sa evitam intoarcerea
+         
             LastDirection = direction;
             OldX = X;
             OldY = Y;
-            if (direction == 1) Y--; // sus
-            else if (direction == 2) Y++; // jos
-            else if (direction == 3) X--; // stanga
-            else if (direction == 4) X++; // dreapta
+            if (direction == 1) Y--; // Up
+            else if (direction == 2) Y++; // Down
+            else if (direction == 3) X--; // Left
+            else if (direction == 4) X++; // Right
 
             if (_maze[X, Y, 0] != -2)
             {
-                // Actualizam ponderea
+                // Update the cell's weight
                 _maze[X, Y, 0] = Math.Max(_maze[X, Y, 0] - 0.1f, 0f); 
             }
 
@@ -175,29 +175,30 @@ namespace MazeProject.Agents
         {
             int lastDirection = pathHistory.Pop();
             LastDirection = lastDirection;
-            // In momentul asta, suntem in dead-end deci marcam celula cu ponderea 0
+
+            // Mark the cell as a dead-end
             _maze[X, Y, 0] = 0f;
             OldX = X;
             OldY = Y;
 
-            // in caz ca exista doua sau mai multe directii valide
+            // Get the valid directions
             List<int> validDirections = GetValidDirections(X, Y);
 
-            // daca singura directie valida e diferita de directia de unde a venit el initial (LastDirection)
-            if(validDirections.Count == 1 && LastDirection != validDirections[0])
+            // If there is only one valid direction and it's not the opposite of the last direction
+            if (validDirections.Count == 1 && LastDirection != validDirections[0])
             {
-                // mergem in directia noua
+                // Update the direction
                 LastDirection = validDirections[0];
             }
 
 
-            // actualizam coordonatele (mergem inapoi)
+            // Go the new direction
             if (LastDirection == 1) Y--;
             else if (LastDirection == 2) Y++; 
             else if (LastDirection == 3) X--; 
             else if (LastDirection == 4) X++; 
 
-            // actualizam gridul cu ponderea celulei
+            // Set the last visited cell as dead-end
             _maze[X, Y, GetOppositeDirection(LastDirection)] = 0f;
             _maze[X, Y, 0] = Math.Max(_maze[X, Y, 0] - 0.1f, 0.1f);
             pathHistory.Push(lastDirection);
@@ -221,14 +222,15 @@ namespace MazeProject.Agents
         {
             int lastDirection = pathHistory.Pop();
 
-            _maze[X, Y, 0] = 0f; // suntem in dead-end
+            // Mark the cell as a dead-end
+            _maze[X, Y, 0] = 0f;
             OldX = X;
             OldY = Y;
 
-            // in caz ca exista una sau mai multe directii valide
+            // Get the valid directions
             List<int> validDirections = GetValidDirections(X, Y);
 
-            // o luam inapoi (actualizam coord.)
+            // Go opposite direction
             if (LastDirection == 1) Y++;  
             else if (LastDirection == 2) Y--; 
             else if (LastDirection == 3) X++; 
@@ -237,7 +239,7 @@ namespace MazeProject.Agents
             _maze[X, Y, LastDirection] = 0f;
             _maze[X, Y, 0] = Math.Max(_maze[X, Y, 0] - 0.1f, 0.1f);
 
-            // Redefinim ultima directie
+            // Update the last direction
             LastDirection = GetOppositeDirection(lastDirection);
             pathHistory.Push(LastDirection);
 
@@ -252,9 +254,9 @@ namespace MazeProject.Agents
         {
             switch (direction)
             {
-                case 1: return 2; // Sus <-> Jos
+                case 1: return 2; // Up <-> Down
                 case 2: return 1;
-                case 3: return 4; // Stânga <-> Dreapta
+                case 3: return 4; // Left <-> Right
                 case 4: return 3;
                 default: return -1;
             }
@@ -262,7 +264,6 @@ namespace MazeProject.Agents
 
         private void StopAgent()
         {
-            //Send("Environment", "AgentFinished");
             _mainForm.AgentAtFinish(this);
         }
 
